@@ -1,17 +1,16 @@
 import numpy as np
-import keras
 import keras.backend as K
 from keras.models import Model
-from keras.layers import Input, Lambda, Activation, Dropout, Concatenate
+from keras.layers import Input, Lambda, Dropout, Concatenate
 from keras.layers import Dense, Embedding, LSTM, Conv1D, GlobalMaxPooling1D
-from keras.layers import Activation
 from keras.layers.wrappers import TimeDistributed
 from keras.utils import to_categorical
 import tensorflow as tf
 import pickle
 
+
 def GeneratorPretraining(V, E, H):
-    '''
+    """
     Model for Generator pretraining. This model's weights should be shared with
         Generator.
     # Arguments:
@@ -22,10 +21,10 @@ def GeneratorPretraining(V, E, H):
         generator_pretraining: keras Model
             input: word ids, shape = (B, T)
             output: word probability, shape = (B, T, V)
-    '''
+    """
     # in comment, B means batch size, T means lengths of time steps.
-    input = Input(shape=(None,), dtype='int32', name='Input') # (B, T)
-    out = Embedding(V, E, mask_zero=True, name='Embedding')(input) # (B, T, E)
+    input = Input(shape=(None,), dtype='int32', name='Input')  # (B, T)
+    out = Embedding(V, E, mask_zero=True, name='Embedding')(input)  # (B, T, E)
     out = LSTM(H, return_sequences=True, name='LSTM')(out)  # (B, T, H)
     out = TimeDistributed(
         Dense(V, activation='softmax', name='DenseSoftmax'),
@@ -33,10 +32,11 @@ def GeneratorPretraining(V, E, H):
     generator_pretraining = Model(input, out)
     return generator_pretraining
 
+
 class Generator():
-    'Create Generator, which generate a next word.'
+    """Create Generator, which generate a next word."""
     def __init__(self, sess, B, V, E, H, lr=1e-3):
-        '''
+        """
         # Arguments:
             B: int, Batch size
             V: int, Vocabrary size
@@ -44,17 +44,18 @@ class Generator():
             H: int, LSTM hidden size
         # Optional Arguments:
             lr: float, learning rate, default is 0.001
-        '''
+        """
         self.sess = sess
         self.B = B
         self.V = V
         self.E = E
         self.H = H
         self.lr = lr
-        self._build_gragh()
-        self.reset_rnn_state()
+        self._build_graph()
+        self.h = np.zeros([B, H])
+        self.c = np.zeros([B, H])
 
-    def _build_gragh(self):
+    def _build_graph(self):
         state_in = tf.placeholder(tf.float32, shape=(None, 1))
         h_in = tf.placeholder(tf.float32, shape=(None, self.H))
         c_in = tf.placeholder(tf.float32, shape=(None, self.H))
@@ -99,11 +100,11 @@ class Generator():
         self.c = np.zeros([self.B, self.H])
 
     def set_rnn_state(self, h, c):
-        '''
+        """
         # Arguments:
             h: np.array, shape = (B,H)
             c: np.array, shape = (B,H)
-        '''
+        """
         self.h = h
         self.c = c
 
@@ -111,7 +112,7 @@ class Generator():
         return self.h, self.c
 
     def predict(self, state, stateful=True):
-        '''
+        """
         Predict next action(word) probability
         # Arguments:
             state: np.array, previous word ids, shape = (B, 1)
@@ -122,7 +123,7 @@ class Generator():
                 else, return prob, next_h, next_c without updating states.
         # Returns:
             prob: np.array, shape=(B, V)
-        '''
+        """
         # state = state.reshape(-1, 1)
         feed_dict = {
             self.state_in : state,
@@ -140,7 +141,7 @@ class Generator():
             return prob, next_h, next_c
 
     def update(self, state, action, reward, h=None, c=None, stateful=True):
-        '''
+        """
         Update weights by Policy Gradient.
         # Arguments:
             state: np.array, Environment state, shape = (B, 1) or (B, t)
@@ -164,7 +165,7 @@ class Generator():
             loss: np.array, shape = (B, )
             next_h: (if stateful is True)
             next_c: (if stateful is True)
-        '''
+        """
         if h is None:
             h = self.h
         if c is None:
@@ -189,12 +190,12 @@ class Generator():
             return loss, next_h, next_c
 
     def sampling_word(self, prob):
-        '''
+        """
         # Arguments:
             prob: numpy array, dtype=float, shape = (B, V),
         # Returns:
             action: numpy array, dtype=int, shape = (B, )
-        '''
+        """
         action = np.zeros((self.B,), dtype=np.int32)
         for i in range(self.B):
             p = prob[i]
@@ -202,14 +203,14 @@ class Generator():
         return action
 
     def sampling_sentence(self, T, BOS=1):
-        '''
+        """
         # Arguments:
             T: int, max time steps
         # Optional Arguments:
             BOS: int, id for Begin Of Sentence
         # Returns:
             actions: numpy array, dtype=int, shape = (B, T)
-        '''
+        """
         self.reset_rnn_state()
         action = np.zeros([self.B, 1], dtype=np.int32)
         action[:, 0] = BOS
@@ -224,15 +225,15 @@ class Generator():
         return actions
 
     def generate_samples(self, T, g_data, num, output_file):
-        '''
+        """
         Generate sample sentences to output file
         # Arguments:
             T: int, max time steps
             g_data: SeqGAN.utils.GeneratorPretrainingGenerator
             num: int, number of sentences
             output_file: str, path
-        '''
-        sentences=[]
+        """
+        sentences = []
         for _ in range(num // self.B + 1):
             actions = self.sampling_sentence(T)
             actions_list = actions.tolist()
@@ -259,8 +260,9 @@ class Generator():
         for layer, w in zip(self.layers, weights):
             layer.set_weights(w)
 
+
 def Discriminator(V, E, H=64, dropout=0.1):
-    '''
+    """
     Disciriminator model.
     # Arguments:
         V: int, Vocabrary size
@@ -271,7 +273,7 @@ def Discriminator(V, E, H=64, dropout=0.1):
         discriminator: keras model
             input: word ids, shape = (B, T)
             output: probability of true data or not, shape = (B, 1)
-    '''
+    """
     input = Input(shape=(None,), dtype='int32', name='Input')   # (B, T)
     out = Embedding(V, E, mask_zero=True, name='Embedding')(input)  # (B, T, E)
     out = LSTM(H)(out)
@@ -282,8 +284,9 @@ def Discriminator(V, E, H=64, dropout=0.1):
     discriminator = Model(input, out)
     return discriminator
 
+
 def DiscriminatorConv(V, E, filter_sizes, num_filters, dropout):
-    '''
+    """
     Another Discriminator model, currently unused because keras don't support
     masking for Conv1D and it does huge influence on training.
     # Arguments:
@@ -296,7 +299,7 @@ def DiscriminatorConv(V, E, filter_sizes, num_filters, dropout):
         discriminator: keras model
             input: word ids, shape = (B, T)
             output: probability of true data or not, shape = (B, 1)
-    '''
+    """
     input = Input(shape=(None,), dtype='int32', name='Input')   # (B, T)
     out = Embedding(V, E, name='Embedding')(input)  # (B, T, E)
     out = VariousConv1D(out, filter_sizes, num_filters)
@@ -307,8 +310,9 @@ def DiscriminatorConv(V, E, filter_sizes, num_filters, dropout):
     discriminator = Model(input, out)
     return discriminator
 
+
 def VariousConv1D(x, filter_sizes, num_filters, name_prefix=''):
-    '''
+    """
     Layer wrapper function for various filter sizes Conv1Ds
     # Arguments:
         x: tensor, shape = (B, T, E)
@@ -317,7 +321,7 @@ def VariousConv1D(x, filter_sizes, num_filters, name_prefix=''):
         name_prefix: str, layer name prefix
     # Returns:
         out: tensor, shape = (B, sum(num_filters))
-    '''
+    """
     conv_outputs = []
     for filter_size, n_filter in zip(filter_sizes, num_filters):
         conv_name = '{}VariousConv1D/Conv1D/filter_size_{}'.format(name_prefix, filter_size)
@@ -330,7 +334,7 @@ def VariousConv1D(x, filter_sizes, num_filters, name_prefix=''):
     return out
 
 def Highway(x, num_layers=1, activation='relu', name_prefix=''):
-    '''
+    """
     Layer wrapper function for Highway network
     # Arguments:
         x: tensor, shape = (B, input_size)
@@ -340,7 +344,7 @@ def Highway(x, num_layers=1, activation='relu', name_prefix=''):
         name_prefix: str, default is '', layer name prefix
     # Returns:
         out: tensor, shape = (B, input_size)
-    '''
+    """
     input_size = K.int_shape(x)[1]
     for i in range(num_layers):
         gate_ratio_name = '{}Highway/Gate_ratio_{}'.format(name_prefix, i)

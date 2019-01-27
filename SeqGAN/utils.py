@@ -9,6 +9,7 @@ class Vocab:
         self.word2id = dict(word2id)
         self.id2word = {v: k for k, v in self.word2id.items()}
         self.unk_token = unk_token
+        self.raw_vocab = {}  # Populated in build_vocab()
 
     def build_vocab(self, sentences, min_count=1):
         word_counter = {}
@@ -28,31 +29,34 @@ class Vocab:
     def sentence_to_ids(self, sentence):
         return [self.word2id[word] if word in self.word2id else self.word2id[self.unk_token] for word in sentence]
 
+
 def load_data(file_path):
-    '''
+    """
     # Arguments:
         file_path: str
     # Returns:
         data: list of list of str, data[i] means a sentence, data[i][j] means a
             word.
-    '''
+    """
     data = []
     for line in open(file_path, encoding='latin1'):
         words = line.strip().split()  # split word with space
         data.append(words)
     return data
 
+
 def sentence_to_ids(vocab, sentence, UNK=3):
-    '''
+    """
     # Arguments:
         vocab: SeqGAN.utils.Vocab
         sentence: list of str
     # Returns:
         ids: list of int
-    '''
+    """
     ids = [vocab.word2id.get(word, UNK) for word in sentence]
     # ids += [EOS]  # Add EOS
     return ids
+
 
 def pad_seq(seq, max_length, PAD=0):
     """
@@ -63,21 +67,22 @@ def pad_seq(seq, max_length, PAD=0):
     seq += [PAD for i in range(max_length - len(seq))]
     return seq
 
+
 def print_ids(ids, vocab, verbose=True, exclude_mark=True, PAD=0, BOS=1, EOS=2):
-    '''
+    """
     :param ids: list of int,
     :param vocab:
-    :param verbose(optional): 
-    :return sentence: list of str
-    '''
+    :param verbose: control the verbosity (default is True).
+    :returns: list of str
+    """
     sentence = []
-    for i, id in enumerate(ids):
-        word = vocab.id2word[id]
-        if exclude_mark and id == EOS:
+    for i, index in enumerate(ids):
+        word = vocab.id2word[index]
+        if exclude_mark and index == EOS:
             break
-        if exclude_mark and id in (BOS, PAD):
+        if exclude_mark and index in (BOS, PAD):
             continue
-        sentence.append(sentence)
+        sentence.append(word)
     if verbose:
         print(sentence)
     return sentence
@@ -154,12 +159,11 @@ class GeneratorPretrainingGenerator(Sequence):
         self.len = self.__len__()
         self.reset()
 
-
     def __len__(self):
         return self.n_data // self.B
 
     def __getitem__(self, idx):
-        '''
+        """
         Get generator pretraining data batch.
         # Arguments:
             idx: int, index of batch
@@ -170,7 +174,7 @@ class GeneratorPretrainingGenerator(Sequence):
                 labels with one-hot encoding.
                 max_length is the max length of sequence in the batch.
                 if length smaller than max_length, the data will be padded.
-        '''
+        """
         x, y_true = [], []
         start = idx * self.B + 1
         end = (idx + 1) * self.B + 1
@@ -212,7 +216,7 @@ class GeneratorPretrainingGenerator(Sequence):
         y_true = np.array(y_true, dtype=np.int32)
         y_true = to_categorical(y_true, num_classes=self.V)
 
-        return (x, y_true)
+        return x, y_true
 
     def __iter__(self):
         return self
@@ -223,7 +227,7 @@ class GeneratorPretrainingGenerator(Sequence):
             raise StopIteration
         x, y_true = self.__getitem__(self.idx)
         self.idx += 1
-        return (x, y_true)
+        return x, y_true
 
     def reset(self):
         self.idx = 0
@@ -237,7 +241,7 @@ class GeneratorPretrainingGenerator(Sequence):
 
 
 class DiscriminatorGenerator(Sequence):
-    '''
+    """
     Generate generator pretraining data.
     # Arguments
         path_pos: str, path to true data
@@ -272,7 +276,7 @@ class DiscriminatorGenerator(Sequence):
         x_words = [id2word[id] for id in X[0]]
         print(x_words)
         >>> I have a <UNK> </S> <PAD> ... <PAD>
-    '''
+    """
     def __init__(self, path_pos, path_neg, B, T=40, min_count=1, shuffle=True):
         self.PAD = 0
         self.BOS = 1
@@ -316,8 +320,8 @@ class DiscriminatorGenerator(Sequence):
         return self.n_data // self.B
 
     def __getitem__(self, idx):
-        '''
-        Get generator pretraining data batch.
+        """
+        Get generator pre-training data batch.
         # Arguments:
             idx: int, index of batch
         # Returns:
@@ -326,13 +330,13 @@ class DiscriminatorGenerator(Sequence):
             Y: numpy.array, shape = (B, )
                 labels indicate whether sentences are true data or generated data.
                 if true data, y = 1. Else if generated data, y = 0.
-        '''
+        """
         X, Y = [], []
         start = idx * self.B + 1
         end = (idx + 1) * self.B + 1
         max_length = 0
         for i in range(start, end):
-            idx = self.indicies[i]
+            idx = self.indices[i]
             is_pos = 1
             if idx < 0:
                 is_pos = 0
@@ -340,12 +344,12 @@ class DiscriminatorGenerator(Sequence):
             idx = idx - 1
 
             if is_pos == 1:
-                sentence = linecache.getline(self.path_pos, idx) # str
-            elif is_pos == 0:
-                sentence = linecache.getline(self.path_neg, idx) # str
+                sentence = linecache.getline(self.path_pos, idx)  # str
+            else:  # is_pos == 0:
+                sentence = linecache.getline(self.path_neg, idx)  # str
 
             words = sentence.strip().split()  # list of str
-            ids = sentence_to_ids(self.vocab, words) # list of ids
+            ids = sentence_to_ids(self.vocab, words)  # list of ids
 
             x = []
             x.extend(ids)
@@ -364,7 +368,7 @@ class DiscriminatorGenerator(Sequence):
         X = [pad_seq(sen, max_length) for sen in X]
         X = np.array(X, dtype=np.int32)
 
-        return (X, Y)
+        return X, Y
 
     def __iter__(self):
         return self
@@ -375,15 +379,15 @@ class DiscriminatorGenerator(Sequence):
             raise StopIteration
         X, Y = self.__getitem__(self.idx)
         self.idx += 1
-        return (X, Y)
+        return X, Y
 
     def reset(self):
         self.idx = 0
         pos_indices = np.arange(start=1, stop=self.n_data_pos+1)
         neg_indices = -1 * np.arange(start=1, stop=self.n_data_neg+1)
-        self.indicies = np.concatenate([pos_indices, neg_indices])
+        self.indices = np.concatenate([pos_indices, neg_indices])
         if self.shuffle:
-            random.shuffle(self.indicies)
+            random.shuffle(self.indices)
 
     def on_epoch_end(self):
         self.reset()
