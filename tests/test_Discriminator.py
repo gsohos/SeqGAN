@@ -11,7 +11,7 @@ class TestDiscriminator(unittest.TestCase):
         filter_sizes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20] # filter sizes for CNNs
         num_filters = [10, 20, 20, 20, 20, 10, 10, 10, 10, 10, 16, 16] # num of filters for CNNs
         gen = DiscriminatorGenerator(
-            path_pos=os.path.join(top, 'data', 'kokoro_parsed.txt'),
+            path_pos=os.path.join(top, 'data', 'prideandprejudice.txt'),
             path_neg=os.path.join(top, 'tests', 'data', 'sample_generated.txt'),
             B=32,
             shuffle=True)

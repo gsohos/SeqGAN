@@ -37,8 +37,8 @@ def load_data(file_path):
             word.
     '''
     data = []
-    for line in open(file_path, encoding='utf-8'):
-        words = line.strip().split()  # スペースで単語を分割
+    for line in open(file_path, encoding='latin1'):
+        words = line.strip().split()  # split word with space
         data.append(words)
     return data
 
@@ -51,7 +51,7 @@ def sentence_to_ids(vocab, sentence, UNK=3):
         ids: list of int
     '''
     ids = [vocab.word2id.get(word, UNK) for word in sentence]
-    # ids += [EOS]  # EOSを加える
+    # ids += [EOS]  # Add EOS
     return ids
 
 def pad_seq(seq, max_length, PAD=0):
@@ -147,7 +147,7 @@ class GeneratorPretrainingGenerator(Sequence):
         self.id2word = self.vocab.id2word
         self.raw_vocab = self.vocab.raw_vocab
         self.V = len(self.vocab.word2id)
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, 'r', encoding='latin1') as f:
             self.n_data = sum(1 for line in f)
         self.shuffle = shuffle
         self.idx = 0
@@ -302,9 +302,9 @@ class DiscriminatorGenerator(Sequence):
         self.id2word = self.vocab.id2word
         self.raw_vocab = self.vocab.raw_vocab
         self.V = len(self.vocab.word2id)
-        with open(path_pos, 'r', encoding='utf-8') as f:
+        with open(path_pos, 'r', encoding='latin1') as f:
             self.n_data_pos = sum(1 for line in f)
-        with open(path_neg, 'r', encoding='utf-8') as f:
+        with open(path_neg, 'r', encoding='latin1') as f:
             self.n_data_neg = sum(1 for line in f)
         self.n_data = self.n_data_pos + self.n_data_neg
         self.shuffle = shuffle

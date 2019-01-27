@@ -24,7 +24,7 @@ class Trainer(object):
         self.eps = init_eps
         self.init_eps = init_eps
         self.top = os.getcwd()
-        self.path_pos = os.path.join(self.top, 'data', 'kokoro_parsed.txt')
+        self.path_pos = os.path.join(self.top, 'data', 'prideandprejudice.txt')
         self.path_neg = os.path.join(self.top, 'data', 'save', 'generated_sentences.txt')
         self.g_data = GeneratorPretrainingGenerator(
             self.path_pos,
@@ -64,7 +64,8 @@ class Trainer(object):
         self.generator_pre.fit_generator(
             self.g_data,
             steps_per_epoch=None,
-            epochs=g_epochs)
+            epochs=g_epochs,
+            verbose=0)
         self.generator_pre.save_weights(self.g_pre_path)
         self.reflect_pre_train()
 

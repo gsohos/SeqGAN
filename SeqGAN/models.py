@@ -242,7 +242,7 @@ class Generator():
         output_str = ''
         for i in range(num):
             output_str += ' '.join(sentences[i]) + '\n'
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, 'w', encoding='latin1') as f:
             f.write(output_str)
 
     def save(self, path):

@@ -20,7 +20,7 @@ class TestEnvironment(unittest.TestCase):
         g_beta = Agent(sess, B, V, E, H)
         discriminator = DiscriminatorConv(V, E, filter_sizes, num_filters, 0.7)
         gen = DiscriminatorGenerator(
-            path_pos=os.path.join(top, 'data', 'kokoro_parsed.txt'),
+            path_pos=os.path.join(top, 'data', 'prideandprejudice.txt'),
             path_neg=os.path.join(top, 'tests', 'data', 'sample_generated.txt'),
             B=B,
             T=T,
