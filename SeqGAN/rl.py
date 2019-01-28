@@ -143,7 +143,7 @@ class Environment(object):
         for i in range(head):
             ids = self.get_state()[i]
             words = [self.data_generator.id2word[index] for index in ids.tolist()]
-            print(''.join(words))
+            print(' '.join(words))
         print('-' * 80)
 
 
