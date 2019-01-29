@@ -43,7 +43,7 @@ def main():
     trainer.load_pre_train(g_pre_weights_path, d_pre_weights_path)
     trainer.reflect_pre_train()
 
-    trainer.train(steps=10, g_steps=1, head=10)
+    trainer.train(steps=20, g_steps=1, head=10)
 
     trainer.save(g_weights_path, d_weights_path)
 
