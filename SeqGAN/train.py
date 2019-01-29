@@ -26,7 +26,7 @@ class Trainer(object):
         self.top = os.getcwd()
         self.g_pre_path = os.path.join(self.top, 'data', 'save', 'generator_pre.hdf5')
         self.d_pre_path = os.path.join(self.top, 'data', 'save', 'discriminator_pre.hdf5')
-        self.path_pos = os.path.join(self.top, 'data', 'prideandprejudice.txt')
+        self.path_pos = os.path.join(self.top, 'data', 'input.txt')
         self.path_neg = os.path.join(self.top, 'data', 'save', 'generated_sentences.txt')
         self.g_data = GeneratorPretrainingGenerator(
             self.path_pos,
